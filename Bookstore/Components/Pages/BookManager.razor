@@ -1,16 +1,17 @@
 @page "/bookmanager"
-@using System.Globalization
-@using Bookstore.Data // 1. IMPORTA O NAMESPACE DO MODELO E SERVIÇO
-@inject BookService _bookService // 2. INJETA O SERVIÇO
+@using System.Globalization;
+@using Bookstore.Data; 
+ 
+@inject BookService _bookService // Injects the BookService to enable database operations.
 
 <PageTitle>Book Manager</PageTitle>
 
 <div class="container my-4">
     <h1 class="display-4 text-primary mb-4">
-        Blazor Book Manager
+       Book Management Page
     </h1>
 
-
+    @* Displays status/error messages if StatusMessage is not empty. *@
     @if (!string.IsNullOrEmpty(StatusMessage))
     {
         <div class="@StatusClass alert alert-dismissible fade show" role="alert">@StatusMessage</div>
@@ -18,14 +19,18 @@
 
     <div class="row">
 
+        @* LEFT COLUMN: Forms (Add/Edit and Date Filter) *@
         <div class="col-lg-4 mb-4">
 
+            @* Card for Adding or Editing a Book *@
             <div class="card shadow mb-4">
                 <div class="card-body">
                     <h2 class="card-title h5">@(IsEditing ? "Edit Book" : "Add New Book")</h2>
+                    @* EditForm handles form submission and validation. OnValidSubmit calls the async SaveBook method. *@
                     <EditForm Model="CurrentBook" OnValidSubmit="SaveBook" class="needs-validation" Novalidate>
                         <DataAnnotationsValidator />
                         
+                        @* Hidden field for the primary key (BookId), necessary for updates. *@
                         <InputNumber @bind-Value="CurrentBook.BookId" hidden /> 
 
                         <div class="mb-3">
@@ -61,10 +66,12 @@
                 </div>
             </div>
 
+            @* Card for Loan Date Filter *@
             <div class="card shadow">
                 <div class="card-body">
                     <h2 class="card-title h5">Loan Query</h2>
                     <p class="card-text text-muted small">Filters borrowed books within the period.</p>
+                    @* @onsubmit calls the async FilterByDateRange method to query the DB *@
                     <form @onsubmit="FilterByDateRange"> 
                         <div class="mb-3">
                             <label for="start-date" class="form-label">Start Date</label>
@@ -80,6 +87,7 @@
                             </button>
                             @if (IsFiltered)
                             {
+                                @* Button to remove filter and reload all books *@
                                 <button type="button" @onclick="ClearFilter" class="btn btn-danger">
                                     Clear Filter
                                 </button>
@@ -91,23 +99,28 @@
 
         </div>
 
+        @* RIGHT COLUMN: Book List Display *@
         <div class="col-lg-8">
             <div class="card shadow">
                 <div class="card-body">
                     <h2 class="card-title h5">Registered Books</h2>
                     <div class="list-group list-group-flush">
-                        @if (AllBooks == null) // Mostra loading enquanto AllBooks é null
+                        @* Shows loading indicator while data is being fetched (AllBooks is null) *@
+                        @if (AllBooks == null) 
                         {
                             <p class="text-center text-muted p-3 bg-light rounded">Loading books from database...</p>
                         }
+                        @* Shows message if the list is empty *@
                         else if (!AllBooks.Any())
                         {
                             <p class="text-center text-muted p-3 bg-light rounded">No books found.</p>
                         }
                         else
                         {
+                            @* Iterate over the list of books loaded from the database service *@
                             @foreach (var book in AllBooks)
                             {
+                                @* Status and display variables *@
                                 var statusBadgeClass = book.IsAvailable ? "bg-success" : "bg-danger";
                                 var statusText = book.IsAvailable ? "Available" : $"Loaned to {book.BorrowerName ?? "unknown"}";
                                 var actionButtonClass = book.IsAvailable ? "btn-warning" : "btn-info";
@@ -125,10 +138,13 @@
                                         </div>
                                         
                                         <div class="d-flex gap-2">
+                                            @* Edit button: loads data into the form. *@
                                             <button @onclick="(() => LoadBookForEdit(book))" class="btn btn-sm btn-secondary">Edit</button>
+                                            @* Borrow/Return button: calls the async ToggleBorrowStatus method. *@
                                             <button @onclick="(() => ToggleBorrowStatus(book))" class="btn btn-sm @actionButtonClass">
                                                 @actionButtonText
                                             </button>
+                                            @* Delete button: calls the async DeleteBook method. *@
                                             <button @onclick="(() => DeleteBook(book.BookId))" class="btn btn-sm btn-danger">Delete</button>
                                         </div>
                                     </div>
@@ -145,8 +161,9 @@
 </div>
 
 @code {
-    // Agora usa a Entidade Book real
+    // List to hold the books loaded from the database.
     private List<Book>? AllBooks; 
+    // The book entity currently bound to the EditForm.
     private Book CurrentBook = new Book();
     private bool IsEditing = false;
     private string StatusMessage = string.Empty;
@@ -155,11 +172,12 @@
     // State for the Date Filter
     private DateTime? FilterStartDate { get; set; } = null;
     private DateTime? FilterEndDate { get; set; } = null;
+    // Checks if both filter dates have values.
     private bool IsFiltered => FilterStartDate.HasValue && FilterEndDate.HasValue;
     
     // --- Component Lifecycle (Async) ---
 
-    // 3. Muda para Async e carrega os dados do serviço
+    // Initializes the component by asynchronously loading book data.
     protected override async Task OnInitializedAsync()
     {
         await LoadBooksAsync();
@@ -167,28 +185,28 @@
 
     // --- Data Loading Logic ---
 
-    // Método principal para carregar ou recarregar a lista de livros
+    // Main method to fetch or reload the book list from the service.
     private async Task LoadBooksAsync(bool forceReload = true)
     {
         if (forceReload)
         {
-            AllBooks = null; // Indica carregamento
+            AllBooks = null; // Set to null to show the loading state.
             StateHasChanged();
         }
         
         try
         {
-            // CHAMA O SERVIÇO: Lê os dados do banco de dados
+            // CALLS THE SERVICE: Reads all books from the database asynchronously.
             AllBooks = await _bookService.GetBooksAsync();
         }
         catch (Exception ex)
         {
             SetStatus($"Error loading books: {ex.Message}", "red");
-            AllBooks = new List<Book>();
+            AllBooks = new List<Book>(); // Initialize empty list on failure.
         }
         finally
         {
-            StateHasChanged();
+            StateHasChanged(); // Triggers a UI re-render.
         }
     }
 
@@ -197,7 +215,7 @@
     private void SetStatus(string message, string type)
     {
         StatusMessage = message;
-        // Mapeamento de cor customizada para classes de Alerta do Bootstrap
+        // Map custom color names to Bootstrap Alert classes.
         string alertType = type switch
         {
             "green" => "alert-success",
@@ -209,15 +227,16 @@
         StatusClass = alertType;
     }
 
-    // --- Filtering and Query Logic (Usando BookService) ---
+    // --- Filtering and Query Logic (Using BookService) ---
 
+    // Executes the date range query.
     private async Task FilterByDateRange()
     {
         if (FilterStartDate.HasValue && FilterEndDate.HasValue)
         {
             try
             {
-                // CHAMA O SERVIÇO: Filtra os dados no banco de dados
+                // CALLS THE SERVICE: Filters borrowed books within the date range in the database.
                 AllBooks = await _bookService.GetBooksBorrowedInDateRangeAsync(FilterStartDate.Value, FilterEndDate.Value);
                 SetStatus($"ACTIVE Loan Filter: {FilterStartDate.Value.ToShortDateString()} to {FilterEndDate.Value.ToShortDateString()}", "green");
             }
@@ -228,30 +247,31 @@
         }
     }
 
+    // Clears the date filters and reloads the full book list.
     private async Task ClearFilter()
     {
         FilterStartDate = null;
         FilterEndDate = null;
-        await LoadBooksAsync(false); // Recarrega todos os livros
+        await LoadBooksAsync(false); // Reloads all books
         SetStatus("Date filter removed.", "blue");
     }
 
-    // --- CRUD Methods (Usando BookService) ---
+    // --- CRUD Methods (Using BookService) ---
 
-    // CREATE (Insert) and UPDATE (Save Edit)
+    // Handles both CREATE (Insert) and UPDATE (Save Edit) operations.
     private async Task SaveBook()
     {
         try
         {
             if (IsEditing)
             {
-                // CHAMA O SERVIÇO: Atualiza no banco de dados
+                // CALLS THE SERVICE: Updates existing book details in the database.
                 await _bookService.UpdateBookDetailsAsync(CurrentBook);
                 SetStatus("Book details updated!", "green");
             }
             else
             {
-                // CHAMA O SERVIÇO: Insere no banco de dados
+                // CALLS THE SERVICE: Inserts a new book into the database.
                 await _bookService.AddBookAsync(CurrentBook);
                 SetStatus("Book inserted successfully!", "green");
             }
@@ -262,13 +282,13 @@
         }
         
         ResetForm();
-        await LoadBooksAsync(false); // Recarrega a lista do banco
+        await LoadBooksAsync(false); // Reloads the list to show changes.
     }
 
-    // UPDATE (Load for Edit)
+    // Loads the selected book's data into the CurrentBook form model for editing.
     private void LoadBookForEdit(Book bookToEdit)
     {
-        // Cria uma cópia para evitar edição direta da lista
+        // Creates a COPY to prevent direct manipulation of the list item before saving.
         CurrentBook = new Book
         {
             BookId = bookToEdit.BookId,
@@ -282,12 +302,12 @@
         IsEditing = true;
     }
 
-    // DELETE (Delete)
+    // Handles the DELETE operation.
     private async Task DeleteBook(int bookId)
     {
         try
         {
-            // CHAMA O SERVIÇO: Deleta no banco de dados
+            // CALLS THE SERVICE: Deletes the book from the database.
             await _bookService.DeleteBookAsync(bookId);
             SetStatus("Book deleted successfully!", "red");
         }
@@ -296,30 +316,31 @@
             SetStatus($"Error deleting book: {ex.Message}", "red");
         }
         
-        await LoadBooksAsync(false); // Recarrega a lista
+        await LoadBooksAsync(false); // Reloads the list.
     }
 
-    // UPDATE (Borrow/Return)
+    // Handles the transaction (Borrow/Return) UPDATE operation.
     private async Task ToggleBorrowStatus(Book book)
     {
         try
         {
             if (book.IsAvailable)
             {
-                // CHAMA O SERVIÇO: Empresta no banco de dados
+                // CALLS THE SERVICE: Borrows the book.
                 var borrowerName = $"User #{new Random().Next(100)}";
                 await _bookService.BorrowAsync(book.BookId, borrowerName);
                 SetStatus($"Book borrowed by {borrowerName}!", "orange");
             }
             else
             {
-                // CHAMA O SERVIÇO: Retorna no banco de dados
+                // CALLS THE SERVICE: Returns the book.
                 await _bookService.ReturnAsync(book.BookId);
                 SetStatus("Book returned successfully!", "blue");
             }
         }
         catch (InvalidOperationException ex)
         {
+            // Captures business logic errors (e.g., already borrowed/returned).
             SetStatus($"Error: {ex.Message}", "red");
         }
         catch (Exception ex)
@@ -327,11 +348,12 @@
             SetStatus($"An unexpected error occurred: {ex.Message}", "red");
         }
         
-        await LoadBooksAsync(false); // Recarrega a lista para mostrar o novo status
+        await LoadBooksAsync(false); // Reloads the list to reflect the new status.
     }
 
     // --- Form Utility Functions ---
 
+    // Resets the form model and editing state.
     private void ResetForm()
     {
         CurrentBook = new Book();
