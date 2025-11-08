@@ -14,7 +14,7 @@ The goal is to practice basic application development skills by building an appl
 
 # Youtube link
 
-[BookStore](https://youtu.be/bc_WogiuBfg)
+[BookStore](https://youtu.be/316Y3SIsgqQ)
 
 # Development Environment
 
@@ -31,4 +31,3 @@ C# (C Sharp) is a modern, object-oriented, and statically-typed programming lang
 * [Microsoft Ignite](https://learn.microsoft.com/en-us/dotnet/csharp/)
 * [Programiz](https://www.programiz.com/csharp-programming)
 
-Teste
