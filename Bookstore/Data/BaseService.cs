@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Bookstore.Data
 {
     // 🗄️ Classe Base para Serviços que dependem do DbContext
-    public class BaseService
+    public abstract class BaseService
     {
         // Torna o contexto protegido para que classes derivadas (como BookService) possam acessá-lo.
         protected readonly BookstoreDbContext _context;
