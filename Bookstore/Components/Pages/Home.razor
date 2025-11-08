@@ -85,11 +85,11 @@ else
             <div class="modal-header"><strong>Borrow Book: @selectedBook?.Title</strong></div>
             <div class="modal-body">
                 <label>Borrower name</label>
-                <input class="form-control" @bind="borrowerName" />
+                <input class="form-control border-dark" @bind="borrowerName" />
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" @onclick="CloseBorrowModal">Cancel</button>
-                <button class="btn btn-primary" @onclick="BorrowBook" disabled="@string.IsNullOrWhiteSpace(borrowerName)">Confirm</button>
+                <button class="btn btn-modal-confirm" @onclick="BorrowBook" disabled="@string.IsNullOrWhiteSpace(borrowerName)">Confirm</button>
             </div>
         </div>
     </div>
